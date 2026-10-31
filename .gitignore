@@ -1,0 +1,36 @@
+# Daten und Umgebungen gehoeren nicht ins Repository.
+# Achtung: In .gitignore ist ein "#" nur am Zeilenanfang ein Kommentar.
+
+# Modelle (4,5 GB, laedt die App selbst)
+models/
+# Python-Laufzeit (4,8 GB, wird als Release-Asset verteilt)
+runtime/
+# Hugging-Face-Cache (5,9 GB)
+.hf/
+# LGM-Gewichte und -Ergebnisse (kommen ueber models/ bzw. out/)
+LGM/pretrained/
+LGM/workspace_test/
+# Projekt-Umgebungen
+.venv/
+.venv-simready/
+.venv-triposplat/
+# Ergebnisse, Logs, Screenshots
+out/
+workspace_steps*/
+ws_*/
+.webui/
+*.log
+srv.err
+
+# Rust
+target/
+
+# Python
+__pycache__/
+*.pyc
+
+# Werkzeuge
+.vscode/
+.idea/
+Thumbs.db
+LGM/.git.upstream/

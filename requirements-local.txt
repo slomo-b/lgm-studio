@@ -1,0 +1,35 @@
+# LGM inference on a non-CUDA backend (Intel XPU / CPU).
+# torch + torchvision come from https://download.pytorch.org/whl/xpu and are
+# installed separately -- see SETUP.md.
+numpy==1.26.4
+tyro==0.8.5
+safetensors
+einops
+imageio
+imageio-ffmpeg
+plyfile
+tqdm
+rich
+Pillow
+scipy
+scikit-image
+matplotlib
+trimesh
+pygltflib
+roma
+
+# multiview diffusion stack (pinned to the era LGM was released in,
+# diffusers.utils.is_accelerate_version was removed in newer releases)
+diffusers==0.27.2
+transformers==4.40.2
+accelerate
+# diffusers 0.27.2 importiert `cached_download`, das in hub >= 0.24 entfernt
+# wurde. Ohne diesen Pin startet die Inferenz mit ImportError.
+huggingface_hub==0.23.5
+
+# ashawkey's helper lib LGM is built on
+kiui==0.2.20
+
+# background removal (CPU build, GPU variant is CUDA-only)
+rembg
+onnxruntime

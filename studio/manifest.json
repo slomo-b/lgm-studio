@@ -1,0 +1,108 @@
+{
+ "version": 1,
+ "note": "Modelle fuer LGM Studio. Pfade relativ zum Modellordner.",
+ "files": [
+  {
+   "id": "unet/diffusion_pytorch_model.safetensors",
+   "path": "imagedream/unet/diffusion_pytorch_model.safetensors",
+   "url": "https://huggingface.co/ashawkey/imagedream-ipmv-diffusers/resolve/main/unet/diffusion_pytorch_model.safetensors",
+   "size": 1883435904
+  },
+  {
+   "id": "image_encoder/model.safetensors",
+   "path": "imagedream/image_encoder/model.safetensors",
+   "url": "https://huggingface.co/ashawkey/imagedream-ipmv-diffusers/resolve/main/image_encoder/model.safetensors",
+   "size": 1261595704
+  },
+  {
+   "id": "lgm/model_fp16_fixrot",
+   "path": "lgm/model_fp16_fixrot.safetensors",
+   "url": "https://huggingface.co/ashawkey/LGM/resolve/main/model_fp16_fixrot.safetensors",
+   "size": 830126160
+  },
+  {
+   "id": "text_encoder/model.safetensors",
+   "path": "imagedream/text_encoder/model.safetensors",
+   "url": "https://huggingface.co/ashawkey/imagedream-ipmv-diffusers/resolve/main/text_encoder/model.safetensors",
+   "size": 680820392
+  },
+  {
+   "id": "vae/diffusion_pytorch_model.safetensors",
+   "path": "imagedream/vae/diffusion_pytorch_model.safetensors",
+   "url": "https://huggingface.co/ashawkey/imagedream-ipmv-diffusers/resolve/main/vae/diffusion_pytorch_model.safetensors",
+   "size": 167335342
+  },
+  {
+   "id": "tokenizer/vocab.json",
+   "path": "imagedream/tokenizer/vocab.json",
+   "url": "https://huggingface.co/ashawkey/imagedream-ipmv-diffusers/resolve/main/tokenizer/vocab.json",
+   "size": 1059962
+  },
+  {
+   "id": "tokenizer/merges.txt",
+   "path": "imagedream/tokenizer/merges.txt",
+   "url": "https://huggingface.co/ashawkey/imagedream-ipmv-diffusers/resolve/main/tokenizer/merges.txt",
+   "size": 524619
+  },
+  {
+   "id": "unet/mv_unet.py",
+   "path": "imagedream/unet/mv_unet.py",
+   "url": "https://huggingface.co/ashawkey/imagedream-ipmv-diffusers/resolve/main/unet/mv_unet.py",
+   "size": 34436
+  },
+  {
+   "id": "tokenizer/tokenizer_config.json",
+   "path": "imagedream/tokenizer/tokenizer_config.json",
+   "url": "https://huggingface.co/ashawkey/imagedream-ipmv-diffusers/resolve/main/tokenizer/tokenizer_config.json",
+   "size": 855
+  },
+  {
+   "id": "text_encoder/config.json",
+   "path": "imagedream/text_encoder/config.json",
+   "url": "https://huggingface.co/ashawkey/imagedream-ipmv-diffusers/resolve/main/text_encoder/config.json",
+   "size": 610
+  },
+  {
+   "id": "vae/config.json",
+   "path": "imagedream/vae/config.json",
+   "url": "https://huggingface.co/ashawkey/imagedream-ipmv-diffusers/resolve/main/vae/config.json",
+   "size": 601
+  },
+  {
+   "id": "image_encoder/config.json",
+   "path": "imagedream/image_encoder/config.json",
+   "url": "https://huggingface.co/ashawkey/imagedream-ipmv-diffusers/resolve/main/image_encoder/config.json",
+   "size": 563
+  },
+  {
+   "id": "model_index.json",
+   "path": "imagedream/model_index.json",
+   "url": "https://huggingface.co/ashawkey/imagedream-ipmv-diffusers/resolve/main/model_index.json",
+   "size": 548
+  },
+  {
+   "id": "feature_extractor/preprocessor_config.json",
+   "path": "imagedream/feature_extractor/preprocessor_config.json",
+   "url": "https://huggingface.co/ashawkey/imagedream-ipmv-diffusers/resolve/main/feature_extractor/preprocessor_config.json",
+   "size": 546
+  },
+  {
+   "id": "scheduler/scheduler_config.json",
+   "path": "imagedream/scheduler/scheduler_config.json",
+   "url": "https://huggingface.co/ashawkey/imagedream-ipmv-diffusers/resolve/main/scheduler/scheduler_config.json",
+   "size": 502
+  },
+  {
+   "id": "tokenizer/special_tokens_map.json",
+   "path": "imagedream/tokenizer/special_tokens_map.json",
+   "url": "https://huggingface.co/ashawkey/imagedream-ipmv-diffusers/resolve/main/tokenizer/special_tokens_map.json",
+   "size": 460
+  },
+  {
+   "id": "unet/config.json",
+   "path": "imagedream/unet/config.json",
+   "url": "https://huggingface.co/ashawkey/imagedream-ipmv-diffusers/resolve/main/unet/config.json",
+   "size": 403
+  }
+ ]
+}

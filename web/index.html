@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Splatforge</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>◆</text></svg>">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#7cb0ff"/><stop offset="1" stop-color="#a07bff"/>
+          </linearGradient>
+        </defs>
+        <path d="M16 2 28 9v14L16 30 4 23V9z" fill="none" stroke="url(#lg)" stroke-width="1.6"/>
+        <path d="M16 2v13m0 0 12 7m-12-7L4 22" fill="none" stroke="url(#lg)" stroke-width="1.1" opacity=".55"/>
+      </svg>
+      <div class="brand-text">
+        <span class="brand-name">Splatforge</span>
+        <span class="brand-sub" data-i18n="brand.sub">Bild → 3D-Gaussian</span>
+      </div>
+    </div>
+
+    <div class="chips">
+      <span class="chip" id="engineChip" data-i18n-title="engine.title">
+        <span class="dot" id="engineDot"></span><span id="engineText">…</span>
+      </span>
+      <span class="chip chip-quiet" id="gpuChip">Intel Arc</span>
+      <div class="lang" id="lang" role="group" aria-label="Language">
+        <button data-lang="de">DE</button>
+        <button data-lang="en">EN</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <aside class="rail">
+
+      <section class="card">
+        <div class="card-head">
+          <h2 data-i18n="source.title">Quelle</h2>
+          <button class="link" id="resetBtn" data-i18n="source.reset" hidden>zurücksetzen</button>
+        </div>
+
+        <div id="drop" class="drop" tabindex="0" role="button" aria-label="Image">
+          <input id="file" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" hidden>
+          <div class="drop-empty" id="dropEmpty">
+            <svg viewBox="0 0 24 24" class="drop-icon" aria-hidden="true">
+              <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <p class="drop-title" data-i18n="drop.title">Bild hierher ziehen</p>
+            <p class="drop-hint" data-i18n="drop.hint">oder klicken · PNG, JPG, WEBP · Strg+V</p>
+          </div>
+          <img id="dropPreview" class="drop-preview" alt="" hidden>
+          <div class="drop-meta" id="dropMeta" hidden></div>
+        </div>
+
+        <div class="samples" id="samples">
+          <span class="samples-label" data-i18n="samples.label">Beispiele</span>
+          <button class="pill" data-sample="bird_rgba.png" data-i18n="samples.bird">Vogel</button>
+          <button class="pill" data-sample="catstatue_rgba.png" data-i18n="samples.cat">Katze</button>
+          <button class="pill" data-sample="anya_rgba.png" data-i18n="samples.figure">Figur</button>
+        </div>
+
+        <div class="quality">
+          <span class="samples-label" data-i18n="quality.label">Qualität</span>
+          <select id="quality" aria-label="Quality">
+            <option value="14" data-i18n="quality.fast">Schnell</option>
+            <option value="20" selected data-i18n="quality.std">Standard</option>
+            <option value="30" data-i18n="quality.fine">Fein</option>
+          </select>
+          <span class="quality-hint" id="qualityHint"></span>
+          <span class="samples-label" style="margin-left:6px" data-i18n="variants.label">Varianten</span>
+          <select id="variants" aria-label="Variants">
+            <option value="1" selected>1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary" id="go" disabled>
+          <span class="btn-label" data-i18n="btn.generate">Generieren</span>
+          <kbd class="btn-kbd">↵</kbd>
+        </button>
+        <p class="footnote" data-i18n="footnote">Ein Objekt, einfacher Hintergrund. ~1 Min (erster Lauf länger).</p>
+      </section>
+
+      <section class="card card-grow">
+        <div class="card-head">
+          <h2 data-i18n="history.title">Verlauf</h2>
+          <span class="count" id="assetCount"></span>
+        </div>
+        <div class="assets" id="assets">
+          <p class="muted-empty" data-i18n="history.empty">Noch nichts generiert.</p>
+        </div>
+      </section>
+    </aside>
+
+    <section class="stage">
+
+      <div class="viewer" id="viewer">
+        <canvas id="canvas"></canvas>
+
+        <div class="stage-toolbar" id="toolbar">
+          <button class="icon-btn" id="btnRotate" data-i18n-title="tool.autorotate">
+            <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
+          <button class="icon-btn" id="btnReset" data-i18n-title="tool.reset">
+            <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v5h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
+          <button class="icon-btn" id="btnBg" data-i18n-title="tool.bg">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg>
+          </button>
+          <button class="icon-btn" id="btnFull" data-i18n-title="tool.full">
+            <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 15v5h-5M15 4h5v5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+
+        <div class="stage-empty" id="stageEmpty">
+          <svg viewBox="0 0 64 64" class="empty-art" aria-hidden="true">
+            <path d="M32 6 54 18v24L32 54 10 42V18z" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".35"/>
+            <path d="M32 6v12m0 0 22 12M32 18 10 30" fill="none" stroke="currentColor" stroke-width=".9" opacity=".25"/>
+            <circle cx="32" cy="30" r="3" fill="currentColor" opacity=".5"/>
+          </svg>
+          <p data-i18n="empty.title">Noch kein Modell geladen</p>
+          <span data-i18n="empty.sub">Links ein Bild wählen oder einen Eintrag aus dem Verlauf öffnen.</span>
+        </div>
+
+        <div class="stage-progress" id="stageProgress" hidden>
+          <div class="progress-card">
+            <div class="progress-top">
+              <span class="spinner"></span>
+              <div>
+                <p class="progress-title" id="progTitle" data-i18n="progress.title">Wird generiert…</p>
+                <p class="progress-sub" id="progSub">…</p>
+              </div>
+            </div>
+            <div class="bar"><i id="progFill"></i></div>
+            <ol class="steps" id="steps">
+              <li data-step="0"><span></span><em data-i18n="step.bg">Hintergrund entfernen</em></li>
+              <li data-step="1"><span></span><em data-i18n="step.views">Ansichten erzeugen</em></li>
+              <li data-step="2"><span></span><em data-i18n="step.gauss">3D-Gaussians rechnen</em></li>
+              <li data-step="3"><span></span><em data-i18n="step.write">Modell schreiben</em></li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="stage-badge" id="stageBadge" hidden></div>
+      </div>
+
+      <div class="cands" id="cands" hidden>
+        <div class="cands-list" id="candsList"></div>
+        <div class="cands-actions">
+          <button class="btn btn-primary" id="btnKeep" data-i18n="cand.keep">Diesen behalten</button>
+          <button class="btn btn-ghost" id="btnDiscard" data-i18n="cand.discard">Verwerfen</button>
+        </div>
+      </div>
+
+      <footer class="stagebar" id="stagebar" hidden>
+        <div class="meta">
+          <strong id="metaName">—</strong>
+          <span class="sep"></span>
+          <span id="metaSplats">—</span>
+          <span class="sep"></span>
+          <span id="metaSize">—</span>
+        </div>
+        <div class="actions">
+          <button class="btn btn-ghost" id="btnPng">PNG</button>
+          <a class="btn btn-ghost" id="btnPly" download data-i18n="btn.download">Herunterladen</a>
+          <button class="btn btn-danger-ghost" id="btnDelete" data-i18n="btn.delete">Löschen</button>
+        </div>
+      </footer>
+    </section>
+  </main>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>

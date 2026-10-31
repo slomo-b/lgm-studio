@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LGM Studio</title>
+<link rel="stylesheet" href="app.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" aria-hidden="true" class="logo">
+      <path d="M12 2 3 7v10l9 5 9-5V7z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M12 7v10M7 9.5v5M17 9.5v5" stroke="currentColor" stroke-width="1.6" opacity=".55"/>
+    </svg>
+    <div>
+      <h1>LGM Studio</h1>
+      <p class="sub">Bild → Splat → SimReady-Asset</p>
+    </div>
+  </div>
+
+  <div class="topbar-right">
+    <button id="btn-env" class="chip" title="Umgebung prüfen">
+      <span class="dot" id="env-dot"></span><span id="env-text">prüfe…</span>
+    </button>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ------------------------------------------------ links: Eingabe -->
+  <aside class="panel">
+    <h2>Eingabe</h2>
+
+    <div id="dropzone" class="dropzone" tabindex="0" role="button"
+         aria-label="Bild auswählen oder hierher ziehen">
+      <img id="preview" alt="" hidden />
+      <div class="dz-hint" id="dz-hint">
+        <svg viewBox="0 0 24 24" class="dz-icon" aria-hidden="true">
+          <path d="M12 16V4m0 0L8 8m4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="1.7"/>
+        </svg>
+        <strong>Bild wählen</strong>
+        <span>oder hierher ziehen</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-head">
+        <label>Diffusionsschritte</label>
+        <span class="muted" id="steps-note">16 = Standard</span>
+      </div>
+      <div class="segmented" id="steps" role="group" aria-label="Diffusionsschritte">
+        <button data-steps="12">12<span>schnell</span></button>
+        <button data-steps="16" class="active">16<span>Standard</span></button>
+        <button data-steps="20">20<span>fein</span></button>
+        <button data-steps="30">30<span>Maximum</span></button>
+      </div>
+    </div>
+
+    <button id="btn-generate" class="primary" disabled>
+      <span>Generieren</span>
+      <kbd>Strg ⏎</kbd>
+    </button>
+
+    <p class="hint" id="hint">Ein Bild mit freigestelltem Objekt funktioniert am besten.</p>
+  </aside>
+
+  <!-- ------------------------------------------------ rechts: Bühne + Konsole -->
+  <section class="right">
+    <section class="stage">
+      <canvas id="canvas"></canvas>
+
+      <div class="stage-empty" id="stage-empty">
+        <div class="orb"></div>
+        <p>Noch kein Modell</p>
+        <span>Ergebnisse erscheinen hier drehbar</span>
+      </div>
+
+      <div class="stage-toolbar" id="stage-toolbar" hidden>
+        <button id="btn-rotate" class="ghost" title="Automatisch drehen">⟳</button>
+        <button id="btn-reset" class="ghost" title="Ansicht zurücksetzen">⌂</button>
+        <span class="stat" id="stat"></span>
+      </div>
+
+      <div class="stage-loading" id="stage-loading" hidden>
+        <div class="spinner"></div>
+        <p id="loading-text">Generiere…</p>
+        <div class="bar"><i id="bar-fill"></i></div>
+        <span class="muted" id="loading-eta"></span>
+      </div>
+    </section>
+
+    <section class="drawer" id="drawer">
+      <button class="drawer-head" id="drawer-toggle" aria-expanded="true">
+        <span>Verlauf &amp; Export</span>
+        <span class="chev">▾</span>
+      </button>
+
+      <div class="drawer-body" id="drawer-body">
+        <div class="log" id="log" aria-live="polite"></div>
+
+        <div class="actions">
+          <label class="field-head" for="obj-class">Objektklasse <span class="muted">für Größe &amp; Masse</span></label>
+          <select id="obj-class">
+            <option value="generic">Allgemein (30 cm)</option>
+            <option value="mug">Tasse (9 cm)</option>
+            <option value="bottle">Flasche (25 cm)</option>
+            <option value="bowl">Schale (18 cm)</option>
+            <option value="box">Kiste (30 cm)</option>
+            <option value="chair">Stuhl (90 cm)</option>
+            <option value="tool">Werkzeug (25 cm)</option>
+            <option value="toy">Spielzeug (15 cm)</option>
+          </select>
+
+          <button id="btn-export" class="secondary" disabled>SimReady-USD exportieren</button>
+          <button id="btn-folder" class="ghost wide" disabled>Ordner öffnen</button>
+        </div>
+      </div>
+    </section>
+  </section>
+</main>
+
+<footer class="statusbar">
+  <span id="status">Bereit</span>
+  <span class="right" id="status-right"></span>
+</footer>
+
+<!-- Einrichtung: Modelle fehlen beim ersten Start -->
+<div class="setup" id="setup" hidden>
+  <div class="setup-card">
+    <h2>Modelle herunterladen</h2>
+    <p class="setup-lead">
+      LGM Studio braucht einmalig <strong id="setup-size">4,8 GB</strong> an
+      Modellgewichten. Danach läuft alles offline.
+    </p>
+
+    <div class="setup-bar"><i id="setup-fill"></i></div>
+    <div class="setup-meta">
+      <span id="setup-file">bereit</span>
+      <span id="setup-eta"></span>
+    </div>
+
+    <div class="setup-actions">
+      <button id="setup-start" class="primary"><span>Herunterladen</span></button>
+      <button id="setup-cancel" class="ghost" hidden>Abbrechen</button>
+    </div>
+
+    <p class="hint" id="setup-hint"></p>
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
