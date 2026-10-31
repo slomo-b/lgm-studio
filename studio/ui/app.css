@@ -201,6 +201,44 @@ body {
 .field-head label { font-size: 12px; color: var(--text-dim); }
 .muted { color: var(--text-faint); font-size: 11px; }
 
+/* Schalter fuer den Feinschliff: eigener Track statt System-Checkbox,
+   damit er sich in die dunkle Oberflaeche einfuegt. */
+.toggle {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.toggle-track {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: #0c1015;
+  border: 1px solid var(--line);
+  transition: background .14s, border-color .14s;
+}
+.toggle-track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  transition: transform .14s, background .14s;
+}
+.toggle input:checked + .toggle-track { background: rgba(94, 234, 212, .18); border-color: rgba(94, 234, 212, .55); }
+.toggle input:checked + .toggle-track::after { transform: translateX(14px); background: #5eead4; }
+.toggle input:focus-visible + .toggle-track { outline: 2px solid rgba(94, 234, 212, .5); outline-offset: 2px; }
+.toggle-text { display: grid; gap: 1px; }
+.toggle-text strong { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.toggle-text em { font-style: normal; font-size: 11px; color: var(--text-faint); }
+
 .segmented {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

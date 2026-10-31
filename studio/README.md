@@ -17,6 +17,25 @@ npx --yes @tauri-apps/cli@2 build            # Installer (NSIS)
 
 Der Installer landet in `target/release/bundle/nsis/`.
 
+> **Leerzeichen im Pfad brechen den GNU-Build.** `windres` zerlegt
+> `…\splat model\studio\target\…` am Leerzeichen. Abhilfe:
+> `$env:CARGO_TARGET_DIR = "C:\lgmbuild"` vor `cargo build` setzen.
+
+## Feinschliff
+
+Nach der Generierung kann das Splat gegen die vier LGM-Ansichten optimiert
+werden (Schalter „Feinschliff" in der Seitenleiste, ~1,5 min).
+
+Der klassische Weg dafür ist `diff_gaussian_rasterization` — eine CUDA-Extension,
+die es für die Arc-iGPU nicht gibt. `simready/diffrender.py` ersetzt sie durch
+einen eigenen differenzierbaren Renderer: Beiträge nach *(Pixel, Tiefe)*
+sortieren, Transmission als Segment-Summe im Lograum, Bild per `scatter_add`.
+Das nutzt ausschließlich Operationen, die auf dieser XPU laufen.
+
+Gemessen: 0,5–0,7 s pro Schritt, Katzenstatue 22,6 → 35,1 dB, Vogel 22,2 → 30,1 dB.
+Das verfeinerte `.ply` bleibt LGM-kompatibel und läuft unverändert durch
+`simready build`.
+
 ## Wie es zusammenhängt
 
 ```
@@ -72,7 +91,30 @@ Reihenfolge (erste Treffer gewinnt):
 3. `.venv\Scripts\python.exe`
 4. `%LOCALAPPDATA%\LGMStudio\runtime\python.exe`
 
-## Kommandozeile
+## Updates
+
+Artefakte: `cargo tauri build` erzeugt mit `createUpdaterArtifacts: true` eine
+`.sig` zum Installer. Das Manifest `latest.json` liegt **im Repo** und wird über
+die Raw-URL gelesen:
+
+```
+https://raw.githubusercontent.com/slomo-b/lgm-studio/main/latest.json
+```
+
+Zwei Fallstricke, beide gemessen:
+
+| Fallstrick | Symptom |
+|---|---|
+| **GitHub leitet Release-Assets um** (`releases/download/…` → anderer Host) | `error decoding response body for url (https://release-assets.githubusercontent.com/…)` — der Updater liest den Body nicht |
+| **BOM im JSON** | `Set-Content -Encoding UTF8` schreibt in PowerShell 5.1 ein BOM vor die `{`; der Parser scheitert |
+
+Deshalb: Manifest im Repo über `raw.githubusercontent.com`, und schreiben mit
+
+```powershell
+[System.IO.File]::WriteAllText($p, $json, (New-Object System.Text.UTF8Encoding($false)))
+```
+
+
 
 ```
 lgm-studio.exe [bild] [--auto]

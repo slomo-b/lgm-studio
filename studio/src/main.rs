@@ -386,6 +386,136 @@ async fn generate(
 }
 
 #[derive(Serialize)]
+struct RefineResult {
+    ok: bool,
+    ply: Option<String>,
+    seconds: f32,
+    psnr_before: Option<f32>,
+    psnr_after: Option<f32>,
+}
+
+/// Feinschliff: optimiert das Splat gegen die vier LGM-Ansichten.
+///
+/// Bewusst ohne CUDA: `simready/diffrender.py` ist ein eigener differenzierbarer
+/// Renderer, der auf der XPU laeuft (gemessen ~0,6 s pro Schritt).
+#[tauri::command]
+async fn refine(
+    window: tauri::Window,
+    app: State<'_, App>,
+    ply: String,
+    steps: u32,
+) -> Result<RefineResult, String> {
+    let root = app.root.clone();
+    let py = python(&root);
+    if !py.exists() {
+        return Err("Python-Laufzeit fehlt".into());
+    }
+    let script = root.join("tools").join("refine_splat.py");
+    if !script.exists() {
+        return Err(format!("Feinschliff-Skript fehlt: {}", script.display()));
+    }
+
+    let ply_path = Path::new(&ply).to_path_buf();
+    if !ply_path.exists() {
+        return Err(format!("Splat nicht gefunden: {ply}"));
+    }
+    let workspace = ply_path
+        .parent()
+        .ok_or("Splat hat keinen Ordner")?
+        .to_path_buf();
+    let stem = ply_path
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .ok_or("Splat hat keinen Namen")?;
+    let out_dir = workspace.join("refine");
+    let steps = steps.clamp(25, 600);
+
+    let started = std::time::Instant::now();
+    let win = window.clone();
+
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        let mut cmd = Command::new(&py);
+        cmd.current_dir(&root)
+            .arg(&script)
+            .arg("--ply").arg(&ply_path)
+            .arg("--workspace").arg(&workspace)
+            .arg("--name").arg(&stem)
+            .arg("--steps").arg(steps.to_string())
+            .arg("--out").arg(&out_dir)
+            .env("PYTHONUNBUFFERED", "1")
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+
+        let mut child = cmd
+            .spawn()
+            .map_err(|e| format!("Start fehlgeschlagen: {e}"))?;
+
+        let mut lines: Vec<String> = Vec::new();
+        let stdout = child.stdout.take().unwrap();
+        let stderr = child.stderr.take().unwrap();
+
+        // stderr in eigenem Thread, sonst blockiert ein voller Puffer
+        let err_store = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+        let es = err_store.clone();
+        let h = std::thread::spawn(move || {
+            for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+                if let Ok(mut v) = es.lock() {
+                    v.push(line);
+                }
+            }
+        });
+
+        for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+            let _ = win.emit("pipeline-line", Emit { line: line.clone() });
+            lines.push(line);
+        }
+        let _ = child.wait();
+        let _ = h.join();
+        if let Ok(v) = err_store.lock() {
+            for line in v.iter() {
+                let _ = win.emit("pipeline-line", Emit { line: line.clone() });
+                lines.push(line.clone());
+            }
+        }
+
+        Ok::<_, String>((lines, out_dir.join(format!("{stem}_refined.ply"))))
+    })
+    .await
+    .map_err(|e| format!("Thread-Fehler: {e}"))?;
+
+    let (lines, out_ply) = result?;
+
+    // Zeile der Form "[ok] 22.62 -> 35.89 dB (+13.27)" auswerten
+    let mut before = None;
+    let mut after = None;
+    for line in &lines {
+        if let Some((a, rest)) = line.split_once("-> ") {
+            if let Some((b, _)) = rest.split_once(" dB") {
+                if let (Ok(x), Ok(y)) = (
+                    a.trim().rsplit(' ').next().unwrap_or("").parse::<f32>(),
+                    b.trim().parse::<f32>(),
+                ) {
+                    before = Some(x);
+                    after = Some(y);
+                }
+            }
+        }
+    }
+
+    Ok(RefineResult {
+        ok: out_ply.exists(),
+        ply: if out_ply.exists() {
+            Some(out_ply.display().to_string())
+        } else {
+            None
+        },
+        seconds: started.elapsed().as_secs_f32(),
+        psnr_before: before,
+        psnr_after: after,
+    })
+}
+
+#[derive(Serialize)]
 struct ExportResult {
     ok: bool,
     usd: Option<String>,
@@ -529,8 +659,7 @@ async fn install_update(window: tauri::Window, app: tauri::AppHandle) -> Result<
 
 /// Portables CPython von python-build-standalone. Kein Installer, keine
 /// Registry, kein Adminrecht -- einfach entpacken und benutzen.
-const PY_URL: &str = "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.11.18%2B20261026-x86_64-pc-windows-msvc-install_only.tar.gz";
-const PIP_XPU: &str = "https://download.pytorch.org/whl/xpu";
+const RUNTIME_URL: &str = "https://github.com/slomo-b/lgm-studio/releases/download/v0.1.0/runtime.tar.gz";
 
 fn runtime_dir(app: &App) -> PathBuf {
     app.root.join("runtime")
@@ -594,128 +723,77 @@ fn untar_gz(archive: &Path, dest: &Path) -> Result<usize, String> {
     Ok(std::fs::read_dir(dest).map(|d| d.count()).unwrap_or(0))
 }
 
-/// Laedt die Python-Laufzeit und installiert die Pakete.
+/// Laedt die fertige Python-Laufzeit als Archiv.
 ///
-/// Zwei Phasen, weil sie sehr unterschiedlich lange dauern: 49 MB entpacken
-/// (Sekunden) und ~2,5 GB Wheels (Minuten). Die Oberflaeche bekommt beide
-/// getrennt gemeldet.
+/// Die Umgebung wird bewusst NICHT auf dem Zielrechner gebaut: ein selbst
+/// kompiliertes CPython laeuft trotz identischer Paketstaende in einen
+/// Level-Zero-OOM. Ausgeliefert wird ein gepacktes, bewaehrtes Environment
+/// (4,84 GB entpackt, 1,77 GB gepackt).
 #[tauri::command]
 async fn install_runtime(window: tauri::Window, app: State<'_, App>) -> Result<(), String> {
-    let dir = runtime_dir(&app);
-    std::fs::create_dir_all(&dir).map_err(|e| format!("Ordner: {e}"))?;
     let root = app.root.clone();
     let win = window.clone();
-    let win2 = window.clone();
 
     tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
-        let py = dir.join("python").join("python.exe");
-
-        // ---- Phase 1: Interpreter
-        if !py.exists() {
-            emit_line(&win, "python", "Lade CPython 3.11 (48,7 MB) …");
-            let tgz = dir.join("cpython.tar.gz");
-            let client = reqwest::blocking::Client::builder()
-                .user_agent("LGM-Studio/0.1")
-                .timeout(std::time::Duration::from_secs(900))
-                .build()
-                .map_err(|e| format!("HTTP: {e}"))?;
-            let mut resp = client.get(PY_URL).send().map_err(|e| format!("Download: {e}"))?;
-            if !resp.status().is_success() {
-                return Err(format!("Download: HTTP {}", resp.status()));
-            }
-            let total = resp.content_length().unwrap_or(0);
-            let mut f = std::fs::File::create(&tgz).map_err(|e| format!("{tgz:?}: {e}"))?;
-            let mut buf = vec![0u8; 1 << 20];
-            let mut done = 0u64;
-            let mut last = std::time::Instant::now();
-            use std::io::{Read, Write};
-            loop {
-                let n = resp.read(&mut buf).map_err(|e| format!("Download: {e}"))?;
-                if n == 0 {
-                    break;
-                }
-                f.write_all(&buf[..n]).map_err(|e| format!("schreiben: {e}"))?;
-                done += n as u64;
-                if last.elapsed().as_millis() >= 200 {
-                    last = std::time::Instant::now();
-                    let _ = win.emit(
-                        "runtime-progress",
-                        serde_json::json!({"phase": "python", "done": done, "total": total}),
-                    );
-                }
-            }
-            f.flush().ok();
-            drop(f);
-
-            emit_line(&win, "python", "Entpacke …");
-            untar_gz(&tgz, &dir)?;
-            let _ = std::fs::remove_file(&tgz);
+        let py = root.join("runtime").join("python").join("python.exe");
+        if py.exists() {
+            emit_line(&win, "fertig", "Laufzeit ist bereits vorhanden.");
+            return Ok(());
         }
-        if !py.exists() {
-            return Err("python.exe nach dem Entpacken nicht gefunden".into());
+
+        let archive = root.join("runtime.tar.gz");
+        emit_line(&win, "runtime", "Lade Laufzeit (1,8 GB) …");
+
+        let client = reqwest::blocking::Client::builder()
+            .user_agent("LGM-Studio/0.1")
+            .timeout(std::time::Duration::from_secs(3600))
+            .build()
+            .map_err(|e| format!("HTTP: {e}"))?;
+        let mut resp = client
+            .get(RUNTIME_URL)
+            .send()
+            .map_err(|e| format!("Download: {e}"))?;
+        if !resp.status().is_success() {
+            return Err(format!("Download: HTTP {}", resp.status()));
         }
-        emit_line(&win, "python", "Interpreter bereit.");
 
-        // ---- Phase 2: Pakete
-        let run = |args: &[&str], label: &str| -> Result<(), String> {
-            emit_line(&win, "pip", label);
-            let mut cmd = Command::new(&py);
-            cmd.args(args).current_dir(&root).env("PYTHONUNBUFFERED", "1");
-            cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
-            let mut child = cmd.spawn().map_err(|e| format!("{label}: {e}"))?;
-            let w1 = win2.clone();
-            let l1 = label.to_string();
-            let t1 = child.stdout.take().unwrap();
-            let t2 = child.stderr.take().unwrap();
-            let h1 = std::thread::spawn(move || {
-                for line in BufReader::new(t1).lines().map_while(Result::ok) {
-                    emit_line(&w1, "pip", &line);
-                }
-            });
-            let w2 = win2.clone();
-            let l2 = label.to_string();
-            let h2 = std::thread::spawn(move || {
-                for line in BufReader::new(t2).lines().map_while(Result::ok) {
-                    emit_line(&w2, "pip", &line);
-                }
-            });
-            let _ = (l1, l2);
-            let status = child.wait().map_err(|e| format!("{label}: {e}"))?;
-            let _ = h1.join();
-            let _ = h2.join();
-            if !status.success() {
-                return Err(format!("{label} fehlgeschlagen ({status})"));
+        let total = resp.content_length().unwrap_or(0);
+        let mut f = std::fs::File::create(&archive).map_err(|e| format!("{archive:?}: {e}"))?;
+        let mut buf = vec![0u8; 1 << 20];
+        let mut done = 0u64;
+        let mut last = std::time::Instant::now();
+        use std::io::{Read, Write};
+        loop {
+            let n = resp.read(&mut buf).map_err(|e| format!("Download: {e}"))?;
+            if n == 0 {
+                break;
             }
-            Ok(())
-        };
+            f.write_all(&buf[..n]).map_err(|e| format!("schreiben: {e}"))?;
+            done += n as u64;
+            if last.elapsed().as_millis() >= 200 {
+                last = std::time::Instant::now();
+                let _ = win.emit(
+                    "runtime-progress",
+                    serde_json::json!({"phase": "runtime", "done": done, "total": total}),
+                );
+            }
+        }
+        f.flush().ok();
+        drop(f);
 
-        run(&["-m", "pip", "install", "--upgrade", "pip"], "pip aktualisieren …")?;
-        run(
-            &[
-                "-m", "pip", "install", "torch", "torchvision",
-                "--index-url", PIP_XPU,
-            ],
-            "PyTorch für Intel-XPU installieren (~1,5 GB) …",
-        )?;
-        run(
-            &["-m", "pip", "install", "-r", "requirements-local.txt"],
-            "Abhängigkeiten installieren …",
-        )?;
+        emit_line(&win, "runtime", "Entpacke (4,8 GB) …");
+        untar_gz(&archive, &root)?;
+        let _ = std::fs::remove_file(&archive);
 
+        if !py.exists() {
+            return Err("runtime/python/python.exe fehlt nach dem Entpacken".into());
+        }
         emit_line(&win, "fertig", "Laufzeit eingerichtet.");
         Ok(())
     })
     .await
     .map_err(|e| format!("Thread: {e}"))?
 }
-
-
-
-/// Windows muss wissen, dass dieser Prozess in echten Pixeln rechnet.
-///
-/// Ohne das liefert Windows virtuelle Koordinaten (Fenster 1094 px), waehrend
-/// WebView2 in physikalischen Pixeln zeichnet (1367 px) -- die Seite ist dann
-/// 1,25x breiter als das Fenster und die rechte Spalte wird abgeschnitten.
 /// Der Aufruf muss vor dem ersten Fenster passieren, deshalb ganz oben in main.
 // ---------------------------------------------------------------- Modelle
 
@@ -982,6 +1060,7 @@ fn main() {
             reveal,
             read_file,
             generate,
+            refine,
             export_simready,
             models_status,
             download_models,

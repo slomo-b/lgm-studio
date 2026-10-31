@@ -17,6 +17,7 @@ const state = {
   ply: null,
   workspace: null,
   steps: 16,
+  refine: false,
   running: false,
   downloading: false,
   env: null,
@@ -145,6 +146,8 @@ async function generate() {
       log(`Fertig in ${res.seconds.toFixed(1)} s`, "ok");
       $("status").textContent = "Fertig in " + res.seconds.toFixed(1) + " s";
       await showSplat(res.ply);
+
+      if (state.refine) await refineSplat();
     } else {
       log("Kein .ply erzeugt — siehe Verlauf", "err");
       $("status").textContent = "Fehlgeschlagen";
@@ -156,6 +159,37 @@ async function generate() {
     stopProgress();
     state.running = false;
     updateButtons();
+  }
+}
+
+/* ---------------------------------------------------------------- Feinschliff */
+
+/// Optimiert das Splat gegen die vier LGM-Ansichten -- ohne CUDA.
+/// Laeuft ueber simready/diffrender.py (eigener differenzierbarer Renderer).
+async function refineSplat() {
+  const REFINE_STEPS = 150;
+  $("status").textContent = "Feinschliff…";
+  stopProgress();
+  startProgress(REFINE_STEPS * 0.7);
+
+  try {
+    const r = await invoke("refine", { ply: state.ply, steps: REFINE_STEPS });
+    if (r.ok && r.ply) {
+      state.ply = r.ply;
+      const gain =
+        r.psnr_before != null && r.psnr_after != null
+          ? ` (${r.psnr_before.toFixed(1)} → ${r.psnr_after.toFixed(1)} dB)`
+          : "";
+      log(`Feinschliff in ${r.seconds.toFixed(0)} s${gain}`, "ok");
+      $("status").textContent = "Fertig mit Feinschliff" + gain;
+      await showSplat(r.ply);
+    } else {
+      log("Feinschliff ohne Ergebnis — Original bleibt erhalten", "err");
+    }
+  } catch (e) {
+    log("Feinschliff: " + e, "err");
+  } finally {
+    stopProgress();
   }
 }
 
@@ -379,6 +413,10 @@ async function init() {
       state.steps = parseInt(b.dataset.steps, 10);
       $("steps-note").textContent = b.querySelector("span").textContent;
     });
+  });
+
+  $("refine-on").addEventListener("change", (e) => {
+    state.refine = e.currentTarget.checked;
   });
 
   // Drag & Drop: HTML5-Wege reichen im WebView, Tauri blockiert sie nicht,
