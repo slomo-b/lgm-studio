@@ -666,7 +666,14 @@ fn runtime_dir(app: &App) -> PathBuf {
 }
 
 fn runtime_python(app: &App) -> PathBuf {
-    runtime_dir(app).join("python").join("python.exe")
+    // Zwei Lagen sind moeglich: das Release-Archiv entpackt `python.exe` direkt
+    // nach `runtime/`, aeltere Pakete nach `runtime/python/`. Beide gelten.
+    let nested = runtime_dir(app).join("python").join("python.exe");
+    if nested.exists() {
+        nested
+    } else {
+        runtime_dir(app).join("python.exe")
+    }
 }
 
 #[derive(Serialize)]
@@ -736,7 +743,8 @@ async fn install_runtime(window: tauri::Window, app: State<'_, App>) -> Result<(
 
     tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
         let py = root.join("runtime").join("python").join("python.exe");
-        if py.exists() {
+        let flat = root.join("runtime").join("python.exe");
+        if py.exists() || flat.exists() {
             emit_line(&win, "fertig", "Laufzeit ist bereits vorhanden.");
             return Ok(());
         }
@@ -785,8 +793,9 @@ async fn install_runtime(window: tauri::Window, app: State<'_, App>) -> Result<(
         untar_gz(&archive, &root)?;
         let _ = std::fs::remove_file(&archive);
 
-        if !py.exists() {
-            return Err("runtime/python/python.exe fehlt nach dem Entpacken".into());
+        let flat = root.join("runtime").join("python.exe");
+        if !py.exists() && !flat.exists() {
+            return Err("python.exe fehlt nach dem Entpacken".into());
         }
         emit_line(&win, "fertig", "Laufzeit eingerichtet.");
         Ok(())

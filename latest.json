@@ -1,11 +1,11 @@
 {
-    "version":  "0.1.2",
-    "notes":  "Feinschliff ohne CUDA: eigener differenzierbarer Splat-Renderer, Schalter in der Seitenleiste",
-    "pub_date":  "2026-10-31T21:12:36Z",
+    "version":  "0.1.3",
+    "notes":  "Laufzeit-Erkennung korrigiert; Feinschliff ohne CUDA (differenzierbarer Splat-Renderer)",
+    "pub_date":  "2026-10-31T21:23:33Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRWjUwdXJFMmdoZGtRbzZlT1RkbEJhVWVOQ1NJNTd3dU55RXJ5S0JLNDNscUozVjFXdUhmQitSejRoSDlUczBJOE1mbHZXMkY0UGFWWDhTbHZJU0d6L1EySUZtbHRkNXc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNDgxMDkzCWZpbGU6TEdNIFN0dWRpb18wLjEuMl94NjQtc2V0dXAuZXhlCXZlcnNpb246MC4xLjIKV0podG5tZzFpanFLcFpKT2I0QnlHeEV6eDhleDZ0b3puMWRyTlEwWTkwbW9PMWw3S25XdEg5REpKSGg1SDRaVThUcHNQaklabDdzcW9sNkplRDBrQUE9PQo=",
-                                             "url":  "https://github.com/slomo-b/lgm-studio/releases/download/v0.1.2/LGM.Studio_0.1.2_x64-setup.exe"
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRWjUwdXJFMmdoZGlCWklRRTRMWHhMQ3V1T1YrSjFxcHN5dDJybmJERStIWlZnNDVtam15ZWdXL3VZQlhTOW43aGFFRXdoTitDdWdEUGsrUXk0ZExQS3J1SEVoSUFiZVFFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNDgxNzk2CWZpbGU6TEdNIFN0dWRpb18wLjEuM194NjQtc2V0dXAuZXhlCXZlcnNpb246MC4xLjMKeUhwbm8vVnBPQy9nWVpqWmt2eFY5Qkp5aW8wc1RFak5GWGxVeXd5Z3ZqTTczUVhQU2ZyWXBaT2NGc2pXWmltbmNDK1J4TVRrRStWYm0rNEJQbDN1QXc9PQo=",
+                                             "url":  "https://github.com/slomo-b/lgm-studio/releases/download/v0.1.3/LGM.Studio_0.1.3_x64-setup.exe"
                                          }
                   }
 }
