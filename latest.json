@@ -1,0 +1,11 @@
+{
+    "version":  "0.1.0",
+    "notes":  "Erste Version: Bild zu Splat, raeumliche Schranke, SimReady-Export, Modell-Downloader.",
+    "pub_date":  "2026-10-31T19:08:04Z",
+    "platforms":  {
+                      "windows-x86_64":  {
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRWjUwdXJFMmdoZHRhdmF0Q2wrVmJIM0sxVWRLbWtCb3p2em5DcVFtQWphVEFvWFJWQS96cXdJRytpSUdoZFZUcE40YWovVjd3ZEt4L1N6YTM0N3MvWkJEY3pLYm9MQ1FRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNDcyNzIyCWZpbGU6TEdNIFN0dWRpb18wLjEuMF94NjQtc2V0dXAuZXhlCXZlcnNpb246MC4xLjAKbFFqQU4yNDdlZEVya2xtQjJJbHJlTlhhOE94eDZ3c0RGdE55SFN2a1N5L3pFZ2gwSE56VlJ4WU5xZVpGODArZGk5bVJmaXdSblVMT2ZzUzdxV0s0QlE9PQo=",
+                                             "url":  "https://github.com/slomo-b/lgm-studio/releases/download/v0.1.0/LGM.Studio_0.1.0_x64-setup.exe"
+                                         }
+                  }
+}
