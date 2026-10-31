@@ -51,6 +51,9 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0 18px;
+  /* Rechts derselbe Freihalte-Streifen wie im Layout: sonst liegen die Chips
+     im nicht sichtbaren Bereich (WebView2-Viewport ~1,27x Fensterbreite). */
+  padding-right: 22vw;
   border-bottom: 1px solid var(--line);
   background: linear-gradient(180deg, #12171e, #0e1217);
 }
@@ -71,6 +74,12 @@ body {
   cursor: pointer;
 }
 .chip:hover { border-color: var(--accent-dim); color: var(--text); }
+.chip.update {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+  background: rgba(79, 209, 197, .08);
+}
+.chip.update strong { font-weight: 600; }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); }
 .dot.ok { background: var(--accent); box-shadow: 0 0 0 3px rgba(79, 209, 197, .12); }
 .dot.err { background: var(--err); box-shadow: 0 0 0 3px rgba(240, 113, 120, .12); }

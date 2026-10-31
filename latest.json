@@ -1,10 +1,10 @@
 {
     "version":  "0.1.1",
-    "notes":  "Update-Pruefung im Client, Zwei-Spalten-Layout, Kopfzeile sichtbar",
-    "pub_date":  "2026-10-31T19:17:30Z",
+    "notes":  "Python-Quellen im Installer, Umgebungspruefung korrigiert, Update-Pruefung",
+    "pub_date":  "2026-10-31T19:39:08Z",
     "platforms":  {
                       "windows-x86_64":  {
-                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRWjUwdXJFMmdoZHExR1ByMmwxb0xRNWd0dXQwbmZvWTJyQ0ZiK2hBWXlER0ZrOWR6M1A2cERFYk4wMEJ3V0pGUUZvTmpJVzZ2QzhZOG5rYzZocFoxZm9TeEFGMFRVVlEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNDc0MjI0CWZpbGU6TEdNIFN0dWRpb18wLjEuMV94NjQtc2V0dXAuZXhlCXZlcnNpb246MC4xLjEKb2F2Q1Jocm5JRmxXUXkvWk9jUjJOMDlKMTRtOHdtR2J3TkoyTzZZK3NFNkhGb0RRTklselNEaGFXakFQekdXN1BCSVBERnIxM0xpUWl1ZDdCemtjQ2c9PQo=",
+                                             "signature":  "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRWjUwdXJFMmdoZHIveVRUT3hzekVPbDd3R2pMK3V0TFJ4UWxqQ0lsbk5jYkRvbEE3MUplQ1VvUWtuWC9XRXE0NDZrTW9tMHY0ZjF1Wm9zNmROS05pVWE2dkNpbWw0dlFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNDc1NDk4CWZpbGU6TEdNIFN0dWRpb18wLjEuMV94NjQtc2V0dXAuZXhlCXZlcnNpb246MC4xLjEKRTZXY3l6Q3NZWEtxUzlSMEpFZUZ5dW91KzJFVS90TDZWVWhSN1pIaG9INjNLaHlwUEI1QzBaak00eHVacFNKMVNKQ29reXlOaFJBbVd6ZUlYV0xHQ3c9PQo=",
                                              "url":  "https://github.com/slomo-b/lgm-studio/releases/download/v0.1.1/LGM.Studio_0.1.1_x64-setup.exe"
                                          }
                   }

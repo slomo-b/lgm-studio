@@ -80,8 +80,16 @@ fn find_root() -> PathBuf {
         .ok()
         .and_then(|p| p.parent().map(|d| d.to_path_buf()));
     while let Some(dir) = cur {
-        if dir.join("LGM").join("infer.py").exists() {
-            return dir;
+        // Installierte App: die Python-Quellen liegen als Ressource neben der exe
+        // (oder je nach Tauri-Version in einem resources-Unterordner).
+        if dir.join("LGM").join("infer.py").exists()
+            || dir.join("resources").join("LGM").join("infer.py").exists()
+        {
+            return if dir.join("LGM").join("infer.py").exists() {
+                dir
+            } else {
+                dir.join("resources")
+            };
         }
         cur = dir.parent().map(|p| p.to_path_buf());
     }
@@ -153,28 +161,30 @@ struct Emit {
 fn env_info(app: State<App>) -> EnvInfo {
     let root = app.root.clone();
     let py = python(&root).exists();
-    let py2 = python_simready(&root).exists();
-    let ckpt = root
-        .join("LGM")
-        .join("pretrained")
+    // Modellgewichte liegen seit dem Downloader in models/, im Entwicklungsstand
+    // zusaetzlich in LGM/pretrained. Beides gilt.
+    let ckpt = models_dir(&app)
+        .join("lgm")
         .join("model_fp16_fixrot.safetensors")
-        .exists();
+        .exists()
+        || root
+            .join("LGM")
+            .join("pretrained")
+            .join("model_fp16_fixrot.safetensors")
+            .exists();
 
     let mut problems = Vec::new();
     if !py {
-        problems.push("Python-Umgebung fehlt (.venv)".into());
+        problems.push("Python-Laufzeit fehlt".into());
     }
     if !ckpt {
-        problems.push("Modellgewichte fehlen (LGM/pretrained)".into());
-    }
-    if !py2 {
-        problems.push("SimReady-Umgebung fehlt (.venv-simready)".into());
+        problems.push("Modellgewichte fehlen (models/lgm)".into());
     }
 
     EnvInfo {
         root: root.display().to_string(),
         python: py,
-        python_simready: py2,
+        python_simready: py,
         checkpoint: ckpt,
         ok: problems.is_empty(),
         autorun: app.autorun,
@@ -453,6 +463,66 @@ async fn export_simready(
         usd: usd.map(|p| p.display().to_string()),
         log: log.lines().map(|s| s.to_string()).collect(),
     })
+}
+
+// ---------------------------------------------------------------- Updates
+
+#[derive(Serialize)]
+struct UpdateInfo {
+    current: String,
+    version: String,
+    notes: Option<String>,
+}
+
+/// Fragt `latest.json` beim Release-Endpunkt ab.
+///
+/// Absichtlich in Rust statt ueber das JS-Plugin: so bleibt die Oberflaeche
+/// frei von zusaetzlichen npm-Paketen, und der Fehlerfall (kein Netz, kein
+/// Release) ist ein normaler Rueckgabewert statt einer Exception im WebView.
+#[tauri::command]
+async fn check_update(app: tauri::AppHandle) -> Result<Option<UpdateInfo>, String> {
+    use tauri_plugin_updater::UpdaterExt;
+    let updater = app.updater().map_err(|e| format!("Updater: {e}"))?;
+    match updater.check().await {
+        Ok(Some(u)) => Ok(Some(UpdateInfo {
+            current: app.package_info().version.to_string(),
+            version: u.version.clone(),
+            notes: u.body.clone(),
+        })),
+        Ok(None) => Ok(None),
+        Err(e) => {
+            // Fehler zusaetzlich auf Platte: im Fenster ist die Meldung schnell
+            // abgeschnitten, und der Updater scheitert gern mit langen Texten.
+            let msg = format!("{e}");
+            let _ = std::fs::create_dir_all("out");
+            let _ = std::fs::write("out/update_error.txt", &msg);
+            Err(msg)
+        }
+    }
+}
+
+#[tauri::command]
+async fn install_update(window: tauri::Window, app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_updater::UpdaterExt;
+    let updater = app.updater().map_err(|e| format!("Updater: {e}"))?;
+    let Some(u) = updater.check().await.map_err(|e| format!("{e}"))? else {
+        return Ok(());
+    };
+    let win = window.clone();
+    let mut downloaded = 0u64;
+    u.download_and_install(
+        move |chunk, total| {
+            downloaded += chunk as u64;
+            let _ = win.emit(
+                "update-progress",
+                serde_json::json!({"done": downloaded, "total": total}),
+            );
+        },
+        || {},
+    )
+    .await
+    .map_err(|e| format!("Installation: {e}"))?;
+    app.restart();
 }
 
 // ---------------------------------------------------------------- Laufzeit
@@ -896,6 +966,7 @@ fn main() {
     let autorun = args.iter().any(|a| a == "--auto");
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(App {
             root,
             initial_image: arg,
@@ -916,7 +987,9 @@ fn main() {
             download_models,
             cancel_download,
             runtime_status,
-            install_runtime
+            install_runtime,
+            check_update,
+            install_update
         ])
         .run(tauri::generate_context!())
         .expect("Fehler beim Start der Anwendung");

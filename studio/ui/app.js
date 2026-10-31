@@ -293,6 +293,36 @@ async function startDownload() {
   }
 }
 
+/* ---------------------------------------------------------------- Updates */
+
+async function checkUpdate() {
+  try {
+    const u = await invoke("check_update");
+    if (u) {
+      $("update-ver").textContent = "v" + u.version;
+      $("btn-update").hidden = false;
+      $("btn-update").title = u.notes || "Update installieren";
+      log(`Update verfügbar: v${u.version} (läuft v${u.current})`, "ok");
+    } else {
+      log("Keine Updates.", "dim");
+    }
+  } catch (e) {
+    // Kein Netz ist kein Fehlerfall: die App funktioniert offline weiter.
+    log("Update-Prüfung: " + e, "dim");
+  }
+}
+
+async function installUpdate() {
+  $("btn-update").disabled = true;
+  log("Lade Update …", "dim");
+  try {
+    await invoke("install_update");
+  } catch (e) {
+    log("Update: " + e, "err");
+    $("btn-update").disabled = false;
+  }
+}
+
 /* ---------------------------------------------------------------- Zustand */
 
 function updateButtons() {
@@ -314,6 +344,13 @@ async function init() {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pickImage(); }
   });
   $("btn-env").addEventListener("click", refreshEnv);
+  $("btn-update").addEventListener("click", installUpdate);
+  await listen("update-progress", (ev) => {
+    const p = ev.payload;
+    $("status").textContent = p.total
+      ? `Update: ${fmtBytes(p.done)} / ${fmtBytes(p.total)}`
+      : `Update: ${fmtBytes(p.done)}`;
+  });
   $("btn-generate").addEventListener("click", generate);
   $("btn-export").addEventListener("click", exportUsd);
   $("setup-start").addEventListener("click", startDownload);
@@ -379,6 +416,7 @@ async function init() {
   });
 
   await checkModels();
+  await checkUpdate();
   await listen("setup-line", (ev) => logLine(`[${ev.payload.phase}] ${ev.payload.line}`));
   await listen("runtime-progress", (ev) => {
     const p = ev.payload;
