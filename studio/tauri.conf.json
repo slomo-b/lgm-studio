@@ -28,7 +28,16 @@
     "active": true,
     "targets": ["nsis"],
     "icon": ["icons/icon.ico"],
+    "createUpdaterArtifacts": true,
     "shortDescription": "Bild zu 3D-Asset",
     "longDescription": "Erzeugt aus einem Bild ein Gaussian-Splat, begrenzt es auf seine Silhouette und exportiert ein SimReady-USD."
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc2MjE2ODEzQUI0QkU3MTkKUldRWjUwdXJFMmdoZHQ4MlRabXBIMWxtM0FRQkRBeTJFejZVS1ZGUjFKbVo5cTZGa3BTb0FmNGMK",
+      "endpoints": [
+        "https://github.com/slomo-b/lgm-studio/releases/latest/download/latest.json"
+      ]
+    }
   }
 }
